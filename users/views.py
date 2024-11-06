@@ -611,13 +611,7 @@ def send_verification_code(user, action):
         from_email='Splashcat <grizzco@splashcat.ink>',
         recipient_list=[user.email]
     )
-
-from django.utils import timezone
-from datetime import timedelta
-from django.contrib import messages
-from django.shortcuts import redirect, render
-from .models import EmailVerification
-
+    
 def verify_code_view(request, action):
     form = CodeVerificationForm(request.POST or None)
 
