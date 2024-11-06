@@ -7,6 +7,7 @@ from datetime import timedelta
 import requests
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import LoginView
@@ -35,12 +36,14 @@ class LoginView(LoginView):
     template_name = 'users/login.html'
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-        if '2fa_user_id' in self.request.session:
-            user = User.objects.get(id=self.request.session['2fa_user_id'])
+        user = form.get_user()
+        
+        if user.multi_factor_auth_enabled:
+            self.request.session['2fa_user_id'] = user.id
             send_verification_code(user, 'login')
             return redirect('users:verify_code_view', action='login')
-        return response
+        
+        return super().form_valid(form)
 
 def profile(request, username: str):
     user = get_object_or_404(User, username__iexact=username)
@@ -631,34 +634,39 @@ def verify_code_view(request, action):
     if request.method == 'POST':
         if form.is_valid():
             code = form.cleaned_data.get('code')
-            user = request.user
+            user_id = request.session.get('2fa_user_id')
+            if user_id:
+                try:
+                    user = User.objects.get(id=user_id)
+                    verification_instance = EmailVerification.objects.get(
+                        user=user,
+                        action=action,
+                        code=code,
+                        expires_at__gt=timezone.now()
+                    )
 
-            try:
-                verification_instance = EmailVerification.objects.get(
-                    user=user,
-                    action=action,
-                    code=code,
-                    expires_at__gt=timezone.now()
-                )
+                    if action == 'login':
+                        login(request, user)
+                        messages.success(request, 'Login Verification Successful.')
+                        request.session.pop('2fa_user_id', None)
+                        return redirect('home')
+                    
+                    elif action == 'account_deletion':
+                        user.delete()
+                        messages.success(request, 'Account Deleted Successfully.')
+                        return redirect('home')
+                    elif action == 'disable_email_2fa':
+                        user.multi_factor_auth_enabled = False
+                        user.save()
+                        messages.success(request, 'Email 2fa has been disabled.')
+                        return redirect('users:settings')
+                    
+                    verification_instance.delete()
 
-                if action == 'login':
-                    messages.success(request, 'Login Verification Successful.')
-                    request.session.pop('2fa_user_id', None)
-                    return redirect('home')
-                elif action == 'account_deletion':
-                    user.delete()
-                    messages.success(request, 'Account Deleted Successfully.')
-                    return redirect('home')
-                elif action == 'disable_email_2fa':
-                    user.multi_factor_auth_enabled = False
-                    user.save()
-                    messages.success(request, 'Email 2fa has been disabled.')
-                    return redirect('users:settings')
-                
-                verification_instance.delete()
-
-            except EmailVerification.DoesNotExist:
-                messages.error(request, 'Invalid code.')
+                except (User.DoesNotExist, EmailVerification.DoesNotExist):
+                    messages.error(request, 'Invalid code.')
+            else:
+                messages.error(request, 'Invalid session or user not found.')
         else:
             messages.error(request, 'Invalid code.')
 
@@ -670,17 +678,12 @@ def verify_code_view(request, action):
 
     return render(request, 'users/verify_code.html', context)
 
-
 @login_required
 def request_delete_verification(request):
     user = request.user
-    action='account_deletion'
+    action = 'account_deletion'
 
-    verification_instance = EmailVerification.objects.create(
-        user=user,
-        action='account_deletion',
-        expires_at=timezone.now() + timedelta(minutes=10)
-    )
+    request.session['2fa_user_id'] = user.id
 
     send_verification_code(user, action)
     messages.info(request, 'A verification code has been sent to your email.')
@@ -699,13 +702,9 @@ def enable_two_factor_auth_email(request):
 @login_required
 def disable_two_factor_auth_email(request):
     user = request.user
-    action='disable_email_2fa'
+    action = 'disable_email_2fa'
 
-    verification_instance = EmailVerification.objects.create(
-        user=user,
-        action=action,
-        expires_at=timezone.now() + timedelta(minutes=10)
-    )
+    request.session['2fa_user_id'] = user.id
 
     send_verification_code(user, action)
     messages.info(request, 'A verification code has been sent to your email.')
