@@ -227,6 +227,18 @@
                         <input type="submit" value="Request Data Export">
                     </form>
                 </div>
+
+                <div>
+                    <h1 class="text-xl font-splatoon1 pt-2">Delete Account</h1>
+                    <p>
+                        Delete your account and all associated data from Splashcat.
+                    </p>
+
+                    <form action="{% url 'users:request_delete_verification' %}" method="post" class="form-css pt-1">
+                        {% csrf_token %}
+                        <input type="submit" value="Begin Account Deletion">
+                    </form>
+                </div>
             </div>
         </div>
     </div>

@@ -76,4 +76,7 @@ urlpatterns = [
      path('verify/<str:action>',
           verify_code_view,
           name='verify_code_view'),
+     path('account/delete/request',
+          request_delete_verification,
+          name='request_delete_verification'),
 ]

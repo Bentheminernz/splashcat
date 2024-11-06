@@ -594,10 +594,9 @@ def set_user_timezone(request):
     
     return JsonResponse({'success': False}, status=400)
 
-@login_required
 def send_verification_code(user, action):
     user.email_verifications.filter(action=action).delete()
-    code = EmailVerification.generate_code()
+    code = EmailVerification.generate_six_digit_code()
 
     code_instance = EmailVerification.objects.create(
         user=user,
@@ -613,10 +612,10 @@ def send_verification_code(user, action):
         recipient_list=[user.email]
     )
 
-@login_required
 def verify_code_view(request, action):
+    form = CodeVerificationForm(request.POST or None)
+
     if request.method == 'POST':
-        form = CodeVerificationForm(request.POST)
         if form.is_valid():
             code = form.cleaned_data.get('code')
             user = request.user
@@ -625,7 +624,8 @@ def verify_code_view(request, action):
                 verification_instance = EmailVerification.objects.get(
                     user=user,
                     action=action,
-                    code=code
+                    code=code,
+                    expires_at=timezone.now() + timedelta(minutes=10)
                 )
 
                 if verification_instance.is_expired():
@@ -645,9 +645,26 @@ def verify_code_view(request, action):
         else:
             messages.error(request, 'Invalid code.')
     
+    action_display = dict(EmailVerification.ACTION_CHOICES).get(action, 'Unknown Action')
     context = {
         'form': form,
-        'action': action
+        'action_display': action_display
     }
 
     return render(request, 'users/verify_code.html', context)
+
+@login_required
+def request_delete_verification(request):
+    user = request.user
+    action='account_deletion'
+
+    verification_instance = EmailVerification.objects.create(
+        user=user,
+        action='account_deletion',
+        expires_at=timezone.now() + timedelta(minutes=10)
+    )
+
+    send_verification_code(user, action)
+    messages.info(request, 'A verification code has been sent to your email.')
+
+    return redirect('users:verify_code_view', action='account_deletion')
