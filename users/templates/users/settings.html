@@ -218,7 +218,11 @@
 
                 <div>
                     <h1 class="text-xl font-splatoon1 pt-2">Change Password</h1>
-                    <a href="{% url 'users:password_change' %}" class="p-4 bg-pink-600 hover:bg-pink-700 rounded">Change Password</a>
+                    {% if request.user.multi_factor_auth_enabled %}
+                        <a href="{% url 'users:password_change' %}" class="p-4 bg-pink-600 hover:bg-pink-700 rounded">Change Password</a>
+                    {% else %}
+                        <a href="{% url 'users:password_change_form' %}" class="p-4 bg-pink-600 hover:bg-pink-700 rounded">Change Password</a>
+                    {% endif %}
                 </div>
 
                 <div>
