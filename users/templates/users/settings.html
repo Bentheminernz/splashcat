@@ -218,11 +218,18 @@
 
                 <div>
                     <h1 class="text-xl font-splatoon1 pt-2">Change Password</h1>
+                    <p>
+                        Change your password.
+                    </p>
+                    
                     {% if request.user.multi_factor_auth_enabled %}
-                        <a href="{% url 'users:password_change' %}" class="p-4 bg-pink-600 hover:bg-pink-700 rounded">Change Password</a>
+                        <form action="{% url 'users:password_change' %}" method="post" class="form-css pt-1">
                     {% else %}
-                        <a href="{% url 'users:password_change_form' %}" class="p-4 bg-pink-600 hover:bg-pink-700 rounded">Change Password</a>
+                        <form action="{% url 'users:password_change_form' %}" method="post" class="form-css pt-1">
                     {% endif %}
+                            {% csrf_token %}
+                            <input type="submit" value="Change Password">
+                        </form>
                 </div>
 
                 <div>
