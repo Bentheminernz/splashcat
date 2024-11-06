@@ -606,11 +606,17 @@ def send_verification_code(user, action):
     )
 
     send_mail(
-        subject='Your {action}',
-        message=f'Your verification code is {code_instance.code}.',
+        subject=f'Your {code_instance.action}',
+        message=f'Your verification code is {code_instance.code}',
         from_email='Splashcat <grizzco@splashcat.ink>',
         recipient_list=[user.email]
     )
+
+from django.utils import timezone
+from datetime import timedelta
+from django.contrib import messages
+from django.shortcuts import redirect, render
+from .models import EmailVerification
 
 def verify_code_view(request, action):
     form = CodeVerificationForm(request.POST or None)
@@ -625,26 +631,24 @@ def verify_code_view(request, action):
                     user=user,
                     action=action,
                     code=code,
-                    expires_at=timezone.now() + timedelta(minutes=10)
+                    expires_at__gt=timezone.now()
                 )
 
-                if verification_instance.is_expired():
-                    messages.error(request, 'The code has expired. Please request a new one.')
-                else:
-                    if action == 'login':
-                        messages.success(request, 'Login Verification Successful.')
-                        return redirect('home')
-                    elif action == 'accoint_deletion':
-                        user.delete()
-                        messages.success(request, 'Account Deletion Verification Successful.')
-                        return redirect('home')
-                    
-                    verification_instance.delete()
+                if action == 'login':
+                    messages.success(request, 'Login Verification Successful.')
+                    return redirect('home')
+                elif action == 'account_deletion':
+                    user.delete()
+                    messages.success(request, 'Account Deleted Successfully.')
+                    return redirect('home')
+                
+                verification_instance.delete()
+
             except EmailVerification.DoesNotExist:
                 messages.error(request, 'Invalid code.')
         else:
             messages.error(request, 'Invalid code.')
-    
+
     action_display = dict(EmailVerification.ACTION_CHOICES).get(action, 'Unknown Action')
     context = {
         'form': form,
@@ -652,6 +656,7 @@ def verify_code_view(request, action):
     }
 
     return render(request, 'users/verify_code.html', context)
+
 
 @login_required
 def request_delete_verification(request):
