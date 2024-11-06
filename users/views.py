@@ -637,7 +637,7 @@ def verify_code_view(request, action):
                     messages.success(request, 'Account Deleted Successfully.')
                     return redirect('home')
                 elif action == 'disable_email_2fa':
-                    user.two_factor_auth_enabled = False
+                    user.multi_factor_auth_enabled = False
                     user.save()
                     messages.success(request, 'Email 2fa has been disabled.')
                     return redirect('users:settings')
@@ -677,7 +677,7 @@ def request_delete_verification(request):
 @login_required
 def enable_two_factor_auth_email(request):
     user = request.user
-    user.two_factor_auth_enabled = True
+    user.multi_factor_auth_enabled = True
     user.save()
 
     messages.success(request, 'Email 2fa has been enabled.')
