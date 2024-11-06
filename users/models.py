@@ -17,6 +17,7 @@ from django.core.validators import URLValidator
 from django.db import models
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 from django_choices_field import TextChoicesField
@@ -317,3 +318,24 @@ class Notification(models.Model):
 
     def __str__(self):
         return f'Notification for {self.recipient} from {self.sender}'
+
+class EmailVerification(models.Model):
+    ACTION_CHOICES = [
+        ('login', 'Login Verification'),
+        ('account_delete', 'Account Deletion'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_verifications')
+    code = models.CharField(max_length=6)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+    
+    @staticmethod
+    def generate_six_digit_code():
+        import random
+        import string
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))

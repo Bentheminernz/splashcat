@@ -2,6 +2,7 @@ import datetime
 import json
 import qrcode
 from typing import Optional
+from datetime import timedelta
 
 import requests
 from django.conf import settings
@@ -15,14 +16,16 @@ from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
+from django.core.mail import send_mail
+from django.utils import timezone
 
 from battles.models import Player, Battle
 from battles.tasks import user_request_data_export
 from splashcat.decorators import github_webhook
 from splatnet_assets.models import Weapon
 from . import tasks
-from .forms import RegisterForm, AccountSettingsForm, ResendVerificationEmailForm
-from .models import User, GitHubLink, ApiKey, ProfileUrl, Follow, Notification
+from .forms import RegisterForm, AccountSettingsForm, ResendVerificationEmailForm, CodeVerificationForm
+from .models import User, GitHubLink, ApiKey, ProfileUrl, Follow, Notification, EmailVerification
 
 
 # Create your views here.
@@ -590,3 +593,61 @@ def set_user_timezone(request):
             return JsonResponse({'success': False})
     
     return JsonResponse({'success': False}, status=400)
+
+@login_required
+def send_verification_code(user, action):
+    user.email_verifications.filter(action=action).delete()
+    code = EmailVerification.generate_code()
+
+    code_instance = EmailVerification.objects.create(
+        user=user,
+        code=code,
+        action=action,
+        expires_at=timezone.now() + timedelta(minutes=10)
+    )
+
+    send_mail(
+        subject='Your {action}',
+        message=f'Your verification code is {code_instance.code}.',
+        from_email='Splashcat <grizzco@splashcat.ink>',
+        recipient_list=[user.email]
+    )
+
+@login_required
+def verify_code_view(request, action):
+    if request.method == 'POST':
+        form = CodeVerificationForm(request.POST)
+        if form.is_valid():
+            code = form.cleaned_data.get('code')
+            user = request.user
+
+            try:
+                verification_instance = EmailVerification.objects.get(
+                    user=user,
+                    action=action,
+                    code=code
+                )
+
+                if verification_instance.is_expired():
+                    messages.error(request, 'The code has expired. Please request a new one.')
+                else:
+                    if action == 'login':
+                        messages.success(request, 'Login Verification Successful.')
+                        return redirect('home')
+                    elif action == 'accoint_deletion':
+                        user.delete()
+                        messages.success(request, 'Account Deletion Verification Successful.')
+                        return redirect('home')
+                    
+                    verification_instance.delete()
+            except EmailVerification.DoesNotExist:
+                messages.error(request, 'Invalid code.')
+        else:
+            messages.error(request, 'Invalid code.')
+    
+    context = {
+        'form': form,
+        'action': action
+    }
+
+    return render(request, 'users/verify_code.html', context)

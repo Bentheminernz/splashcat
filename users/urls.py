@@ -73,4 +73,7 @@ urlpatterns = [
     path('verify-email/resend/',
          resend_verification_email,
          name='resend_verification_email'),
+     path('verify/<str:action>',
+          verify_code_view,
+          name='verify_code_view'),
 ]

@@ -132,3 +132,23 @@ class ResendVerificationEmailForm(forms.Form):
             user = User.objects.get(email=email)
             if user:
                 user.send_verification_email()
+
+class CodeVerificationForm(forms.Form):
+    code = forms.CharField(label=_("Verification Code"), max_length=6)
+
+    def clean_code(self):
+        code = self.cleaned_data.get("code")
+        if code is not None:
+            if len(code) != 6:
+                raise forms.ValidationError(
+                    _("Enter a 6-digit verification code."),
+                    code='invalid_code',
+                )
+        return code
+
+    def verify_code(self, user):
+        code = self.cleaned_data.get("code")
+        if code is not None:
+            if user.verify_email(code):
+                return True
+        return False
