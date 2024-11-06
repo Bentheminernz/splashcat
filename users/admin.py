@@ -71,7 +71,7 @@ class UserAdmin(AbstractUserAdmin):
 
     fieldsets = AbstractUserAdmin.fieldsets + (
         (None, {"fields": ["profile_picture", "profile_cover", "bio", "saved_favorite_color", "data_export_pending", 
-                           "last_data_export", "verified_email", "preferred_pronouns", 'timezone', 
+                           "last_data_export", "verified_email", "preferred_pronouns", 'timezone', 'multi_factor_auth_enabled', 
                            "approved_to_upload_videos", "video_collection_id", 
                            "coral_friend_url", "stripe_customer_id", "_stripe_entitlements"]}),
     )

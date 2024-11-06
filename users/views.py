@@ -604,14 +604,15 @@ def send_verification_code(user, action):
         action=action,
         expires_at=timezone.now() + timedelta(minutes=10)
     )
+    action_display = dict(EmailVerification.ACTION_CHOICES).get(action, 'Unknown Action')
 
     send_mail(
-        subject=f'Your {code_instance.action}',
+        subject=f'Your {action_display.title()} Verification Code',
         message=f'Your verification code is {code_instance.code}',
         from_email='Splashcat <grizzco@splashcat.ink>',
         recipient_list=[user.email]
     )
-    
+
 def verify_code_view(request, action):
     form = CodeVerificationForm(request.POST or None)
 
@@ -635,6 +636,11 @@ def verify_code_view(request, action):
                     user.delete()
                     messages.success(request, 'Account Deleted Successfully.')
                     return redirect('home')
+                elif action == 'disable_email_2fa':
+                    user.two_factor_auth_enabled = False
+                    user.save()
+                    messages.success(request, 'Email 2fa has been disabled.')
+                    return redirect('users:settings')
                 
                 verification_instance.delete()
 
@@ -667,3 +673,28 @@ def request_delete_verification(request):
     messages.info(request, 'A verification code has been sent to your email.')
 
     return redirect('users:verify_code_view', action='account_deletion')
+
+@login_required
+def enable_two_factor_auth_email(request):
+    user = request.user
+    user.two_factor_auth_enabled = True
+    user.save()
+
+    messages.success(request, 'Email 2fa has been enabled.')
+    return redirect('users:settings')
+
+@login_required
+def disable_two_factor_auth_email(request):
+    user = request.user
+    action='disable_email_2fa'
+
+    verification_instance = EmailVerification.objects.create(
+        user=user,
+        action=action,
+        expires_at=timezone.now() + timedelta(minutes=10)
+    )
+
+    send_verification_code(user, action)
+    messages.info(request, 'A verification code has been sent to your email.')
+
+    return redirect('users:verify_code_view', action='disable_email_2fa')

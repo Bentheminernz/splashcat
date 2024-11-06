@@ -217,12 +217,31 @@
                 </div>
 
                 <div>
+                    <h1 class="text-xl font-splatoon1 pt-2">Multi-Factor Authentication</h1>
+                    <p>
+                        Enable email-based two-factor authentication to secure your account.
+                    </p>
+
+                    {% if request.user.multi_factor_auth_enabled %}
+                        <form action="{% url 'users:enable_2fa_email' %}" method="post" class="form-css pt-1">
+                            {% csrf_token %}
+                            <input type="submit" value="Enable MFA">
+                        </form>
+                    {% else %}
+                        <form action="{% url 'users:disable_2fa_email' %}" method="post" class="form-css pt-1">
+                            {% csrf_token %}
+                            <input type="submit" value="Disable MFA">
+                        </form>
+                    {% endif %}
+                </div>
+
+                <div>
                     <h1 class="text-xl font-splatoon1 pt-2">Request Data Export</h1>
                     <p>
                         Request a copy of your data from Splashcat.
                     </p>
 
-                    <form action="{% url 'users:request_data_export' %}" method="post" class="form-css pt-1">
+                    <form action="#" method="post" class="form-css pt-1">
                         {% csrf_token %}
                         <input type="submit" value="Request Data Export">
                     </form>

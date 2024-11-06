@@ -114,6 +114,8 @@ class User(AbstractUser):
     coral_friend_url = models.URLField(_("Nintendo Switch Online app friend URL"), blank=True, null=True,
                                        validators=[URLValidator(
                                            regex=r"^https:\/\/lounge\.nintendo\.com\/friendcode\/\d{4}-\d{4}-\d{4}\/[A-Za-z0-9]{10}$")])
+    
+    multi_factor_auth_enabled = models.BooleanField(_("multi-factor authentication enabled"), default=False)
 
     @property
     def entitlements(self):
@@ -323,6 +325,7 @@ class EmailVerification(models.Model):
     ACTION_CHOICES = [
         ('login', 'Login'),
         ('account_deletion', 'Account Deletion'),
+        ('disable_email_2fa', 'Disable Email 2FA'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_verifications')

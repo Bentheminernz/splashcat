@@ -79,4 +79,10 @@ urlpatterns = [
      path('account/delete/request',
           request_delete_verification,
           name='request_delete_verification'),
+     path('account/2fa/email/enable',
+          enable_two_factor_auth_email,
+          name='enable_2fa_email'),
+     path('account/2fa/email/disable',
+          disable_two_factor_auth_email,
+          name='disable_2fa_email'),
 ]
