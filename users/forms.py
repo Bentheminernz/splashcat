@@ -98,6 +98,10 @@ class AuthenticationForm(DjangoAuthenticationForm):
                             self.error_messages['email_not_verified'],
                             code='email_not_verified',
                         )
+                    
+                    if user.multi_factor_auth_enabled:
+                        self.request.session['2fa_user_id'] = user.id
+                        
             except User.DoesNotExist:
                 pass
         super().clean()

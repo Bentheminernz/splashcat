@@ -9,6 +9,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.views import LoginView
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.db import models
 from django.forms import inlineformset_factory
@@ -24,11 +25,22 @@ from battles.tasks import user_request_data_export
 from splashcat.decorators import github_webhook
 from splatnet_assets.models import Weapon
 from . import tasks
-from .forms import RegisterForm, AccountSettingsForm, ResendVerificationEmailForm, CodeVerificationForm
+from .forms import RegisterForm, AccountSettingsForm, ResendVerificationEmailForm, CodeVerificationForm, AuthenticationForm
 from .models import User, GitHubLink, ApiKey, ProfileUrl, Follow, Notification, EmailVerification
 
 
 # Create your views here.
+class LoginView(LoginView):
+    form_class = AuthenticationForm
+    template_name = 'users/login.html'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if '2fa_user_id' in self.request.session:
+            user = User.objects.get(id=self.request.session['2fa_user_id'])
+            send_verification_code(user, 'login')
+            return redirect('users:verify_code_view', action='login')
+        return response
 
 def profile(request, username: str):
     user = get_object_or_404(User, username__iexact=username)
@@ -631,6 +643,7 @@ def verify_code_view(request, action):
 
                 if action == 'login':
                     messages.success(request, 'Login Verification Successful.')
+                    request.session.pop('2fa_user_id', None)
                     return redirect('home')
                 elif action == 'account_deletion':
                     user.delete()

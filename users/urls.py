@@ -11,7 +11,7 @@ urlpatterns = [
     path('api/github-sponsors-webhook/', github_sponsors_webhook, name='github_sponsors_webhook'),
     path(
         "login/",
-        auth_views.LoginView.as_view(template_name="users/login.html", form_class=AuthenticationForm),
+        LoginView.as_view(),
         name="login",
     ),
     path(
