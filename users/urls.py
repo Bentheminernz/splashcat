@@ -19,6 +19,7 @@ urlpatterns = [
         auth_views.LogoutView.as_view(),
         name="logout",
     ),
+    # These are the password reset URLs that the user uses from the login page
     path(
         "password-reset/",
         auth_views.PasswordResetView.as_view(
@@ -85,4 +86,11 @@ urlpatterns = [
      path('account/2fa/email/disable',
           disable_two_factor_auth_email,
           name='disable_2fa_email'),
+     # These the password change URLs that the user uses from the settings page
+     path("password-change/",
+          user_password_reset,
+          name='password_change'),
+     path("password-change-form/",
+          UserPasswordChangeView.as_view(),
+          name='password_change_form'),
 ]

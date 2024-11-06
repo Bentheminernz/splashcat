@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.db import models
 from django.forms import inlineformset_factory
@@ -20,6 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 from django.core.mail import send_mail
 from django.utils import timezone
+from django.urls import reverse_lazy
 
 from battles.models import Player, Battle
 from battles.tasks import user_request_data_export
@@ -623,7 +624,7 @@ def send_verification_code(user, action):
 
     send_mail(
         subject=f'Your {action_display.title()} Verification Code',
-        message=f'Your verification code is {code_instance.code}',
+        message=f'Hello @{code_instance.user.username}\nYour verification code is {code_instance.code}. This code will expire in 10 minutes.\n\nIf you did not request this code, please reset your password immediately.',
         from_email='Splashcat <grizzco@splashcat.ink>',
         recipient_list=[user.email]
     )
@@ -655,11 +656,17 @@ def verify_code_view(request, action):
                         user.delete()
                         messages.success(request, 'Account Deleted Successfully.')
                         return redirect('home')
+                    
                     elif action == 'disable_email_2fa':
                         user.multi_factor_auth_enabled = False
                         user.save()
                         messages.success(request, 'Email 2fa has been disabled.')
                         return redirect('users:settings')
+                    
+                    elif action == 'password_change':
+                        request.session['password_reset_verified_user_id'] = user.id
+                        request.session['2fa_user_id'] = user.id
+                        return redirect('users:password_change_form')
                     
                     verification_instance.delete()
 
@@ -710,3 +717,24 @@ def disable_two_factor_auth_email(request):
     messages.info(request, 'A verification code has been sent to your email.')
 
     return redirect('users:verify_code_view', action='disable_email_2fa')
+
+@login_required
+def user_password_reset(request):
+    user = request.user
+    send_verification_code(user, 'password_change')
+    request.session['2fa_user_id'] = user.id
+    return redirect('users:verify_code_view', action='password_change')
+
+class UserPasswordChangeView(PasswordChangeView):
+    template_name = 'users/password_change.html'
+    success_url = reverse_lazy('users:password_change_done')
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.multi_factor_auth_enabled:
+            if not request.session.get('password_reset_verified_user_id'):
+                messages.error(request, 'Unauthorized access to password reset.')
+                return redirect('users:password_change')
+
+        # Clear session variable for one-time verification
+        request.session.pop('password_reset_verified_user_id', None)
+        return super().dispatch(request, *args, **kwargs)

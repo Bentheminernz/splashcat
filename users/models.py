@@ -326,6 +326,7 @@ class EmailVerification(models.Model):
         ('login', 'Login'),
         ('account_deletion', 'Account Deletion'),
         ('disable_email_2fa', 'Disable Email 2FA'),
+        ('password_change', 'Password Change'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_verifications')
