@@ -9,6 +9,7 @@ from battles.models import Battle
 from groups.forms import GroupAdminForm, GroupInviteForm
 from groups.models import Group, Membership
 from users.models import User
+from users.views import verify_code_view, send_verification_code
 
 
 # Create your views here.
@@ -192,6 +193,12 @@ def delete_group(request, group_id):
     group = get_object_or_404(Group, pk=group_id)
     if group.owner != request.user:
         return HttpResponseForbidden()
-    group.delete()
-    messages.success(request, 'Group deleted.')
-    return HttpResponseClientRedirect(reverse('groups:index'))
+    
+    user = request.user
+    action = 'delete_group'
+    request.session['2fa_user_id'] = user.id
+    request.session['group_id'] = group_id
+    send_verification_code(user, action)
+    messages.info(request, 'A verification code has been sent to your email address.')
+
+    return redirect('users:verify_code_view', action=action)

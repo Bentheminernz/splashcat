@@ -237,6 +237,11 @@
                     <p>
                         Enable email-based two-factor authentication to secure your account.
                     </p>
+                    {% if request.user.is_superuser and not request.user.multi_factor_auth_enabled %}
+                        <p class="text-red-600">
+                            As an Admin its recommended to enable MFA.
+                        </p>
+                    {% endif %}
 
                     {% if not request.user.multi_factor_auth_enabled %}
                         <form action="{% url 'users:enable_2fa_email' %}" method="post" class="form-css pt-1">

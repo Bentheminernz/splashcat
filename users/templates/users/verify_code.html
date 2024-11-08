@@ -9,6 +9,10 @@
         <p class="my-2 text-red-600">
             <strong>Warning:</strong> This action is irreversible. Upon verifying your code, all data will be <strong>permanently deleted instantly</strong>.
         </p>
+    {% elif action_display == 'Delete Group' %}
+        <p class="my-2 text-red-600">
+            <strong>Warning:</strong> This action is irreversible. Upon verifying your code, the group will be <strong>permanently deleted instantly</strong>.
+        </p>
     {% endif %}
     <form class="form-css" method="post" autocomplete="off">
         {% csrf_token %}

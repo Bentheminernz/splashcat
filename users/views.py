@@ -29,6 +29,7 @@ from splatnet_assets.models import Weapon
 from . import tasks
 from .forms import RegisterForm, AccountSettingsForm, ResendVerificationEmailForm, CodeVerificationForm, AuthenticationForm
 from .models import User, GitHubLink, ApiKey, ProfileUrl, Follow, Notification, EmailVerification
+from groups.models import Group
 
 
 # Create your views here.
@@ -711,6 +712,13 @@ def verify_code_view(request, action):
                         request.session['password_reset_verified_user_id'] = user.id
                         request.session['2fa_user_id'] = user.id
                         return redirect('users:password_change_form')
+                    
+                    elif action == 'delete_group':
+                        group_id = request.session.get('group_id')
+                        group = get_object_or_404(Group, id=group_id)
+                        group.delete()
+                        messages.success(request, 'Group Deleted Successfully.')
+                        return redirect('groups:index')
                     
                     verification_instance.delete()
 
