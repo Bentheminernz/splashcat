@@ -1,9 +1,16 @@
 {% extends 'base.html' %}
 {% block title %}Verify {{ action_display|title }}{% endblock title %}
 {% block content %}
-    <h1 class="text-3xl font-splatoon1">Verify {{ action_display|title }}</h1>
-    <p class="my-2">Please enter the code sent to '{{ request.user.email }}' to verify your {{ action_display }}.</p>
-    <form class="form-css" method="post">
+    <h1 class="text-3xl font-splatoon1">Verify {{ action_display|title }} request</h1>
+    <p class="my-2">
+        Please enter the code sent to '{{ request.user.email }}' to verify your {{ action_display|lower }} request.
+    </p>
+    {% if action_display == 'Account Deletion' %}
+        <p class="my-2 text-red-600">
+            <strong>Warning:</strong> This action is irreversible. Upon verifying your code, all data will be <strong>permanently deleted instantly</strong>.
+        </p>
+    {% endif %}
+    <form class="form-css" method="post" autocomplete="off">
         {% csrf_token %}
         <div>
             {{ form.code.errors }}
