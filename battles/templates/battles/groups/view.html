@@ -49,10 +49,10 @@
            class="bg-purple-800 p-4 rounded w-fit max-h-fit block">Create Assistant Thread</a>
     {% endif %}
 
-    <h2 class="font-splatoon1 text-xl">Creator</h2>
+    <h2 class="font-splatoon1 text-2xl">Creator</h2>
     {% include "users/includes/user-link.html" with user=battle_group.creator show_splashtag=True %}
 
-    <h2 class="font-splatoon1 text-xl">Statistics</h2>
+    <h2 class="font-splatoon1 text-2xl mt-2">Statistics</h2>
     <div class="flex flex-row flex-wrap divide-x-2 divide-gray-500 gap-y-2">
         <div class="px-4">
             <div class="text-lg">Victories</div>
@@ -68,10 +68,17 @@
         </div>
     </div>
 
-    <h2 class="font-splatoon1 text-xl">Battles</h2>
+    <h2 class="font-splatoon1 text-2xl mt-2">Battles</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {% for battle in battles %}
             {% include "users/includes/battle-card.html" with battle=battle %}
         {% endfor %}
     </div>
+
+    {% if battle_group.creator == request.user %}
+    <form action="{% url 'battles:delete_battle_group' battle_group.id %}" method="post" class="form-css mt-6">
+        {% csrf_token %}
+        <input type="submit" value="Delete Battle Group">  
+    </form>
+    {% endif %}
 {% endblock %}

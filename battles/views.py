@@ -8,6 +8,8 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib import messages
+
 from jsonschema import validate
 from sentry_sdk import capture_exception, capture_message
 
@@ -365,3 +367,14 @@ def battle_group_opengraph(request, group_id):
                       'win_rate': win_rate,
                       'most_used_weapons': most_used_weapons,
                   })
+
+@login_required
+def delete_battle_group(request, group_id):
+    group = get_object_or_404(BattleGroup, id=group_id)
+    if group.creator != request.user:
+        return HttpResponseForbidden()
+
+    group.delete()
+    messages.info(request, _("Group deleted."))
+
+    return redirect('profile', username = request.user.username)
